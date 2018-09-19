@@ -9,7 +9,7 @@ import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.moshi.MoshiConverterFactory
 
-class eventRepository {
+class EventRepository {
     val TAG = "eventRepository"
 
     fun getTestEvents(): Array<Event> {
@@ -21,7 +21,11 @@ class eventRepository {
                 testEvent, testEvent, testEvent, testEvent, testEvent, testEvent, testEvent)
     }
 
-    fun getEventsAsync(data: (List<Event>) -> Unit) {
+    fun getTestEmptyEvents(): Array<Event> {
+        return arrayOf()
+    }
+
+    fun getEventsAsync(data: (List<Event>, t: Throwable?) -> Unit) {
         val retrofit = Retrofit.Builder()
                 .baseUrl("https://eventi-mcjohn.azurewebsites.net/")
                 .addConverterFactory(MoshiConverterFactory.create())
@@ -32,14 +36,14 @@ class eventRepository {
 
         events.enqueue(object : Callback<List<Event>> {
             override fun onFailure(call: Call<List<Event>>, t: Throwable) {
-                data(listOf())
+                data(listOf(), t)
                 Log.v(TAG, t.toString())
             }
 
             override fun onResponse(call: Call<List<Event>>, response: Response<List<Event>>) {
                 val respObj = response.body()
                 Log.v(TAG, respObj?.joinToString())
-                data(respObj!!)
+                data(respObj!!, null)
             }
 
         })

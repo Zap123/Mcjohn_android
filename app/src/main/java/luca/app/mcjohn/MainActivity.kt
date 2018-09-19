@@ -3,11 +3,16 @@ package luca.app.mcjohn
 import android.arch.lifecycle.Observer
 import android.arch.lifecycle.ViewModelProviders
 import android.os.Bundle
+import android.support.v4.widget.SwipeRefreshLayout
 import android.support.v7.app.AppCompatActivity
 import android.support.v7.widget.LinearLayoutManager
 import android.support.v7.widget.RecyclerView
-import android.util.Log
-import kotlinx.android.synthetic.main.recyclerviewevent_item.view.*
+import android.view.Menu
+import android.view.MenuItem
+import android.view.View
+import android.widget.ProgressBar
+import android.widget.TextView
+import kotlinx.android.synthetic.main.activity_main.*
 import luca.app.mcjohn.events.Event
 import luca.app.mcjohn.events.EventAdapter
 import luca.app.mcjohn.viewModel.EventViewModel
@@ -24,9 +29,10 @@ class MainActivity : AppCompatActivity() {
         // instantiate ViewModel
         val model = ViewModelProviders.of(this).get(EventViewModel::class.java)
         //download events
-        model.getEvents()
+        refreshEvents()
 
 
+        // set up recyclerView
         viewManager = LinearLayoutManager(this)
         viewAdapter = EventAdapter(listOf())
 
@@ -35,14 +41,56 @@ class MainActivity : AppCompatActivity() {
             adapter = viewAdapter
         }
 
-        recyclerView.setOnClickListener{
-            Log.v("MAIN",it.venue.text.toString())
-            Log.v("MAIN","CLICK")
+        //pull to refresh
+        val swipeRefreshLayout: SwipeRefreshLayout = findViewById(R.id.swipeRefreshLayout)
+
+        swipeRefreshLayout.setOnRefreshListener {
+            //update events
+            refreshEvents()
         }
 
-        model.eventsArray.observe(this, Observer<List<Event>> { eventslist ->
+        //Loading bar
+        val loadingContent: ProgressBar = findViewById(R.id.loadingContent)
+
+        // live update
+        model.getEventsArrayObserver().observe(this, Observer<List<Event>> { eventslist ->
+            //update recycler if data changes
             eventslist?.let { (viewAdapter as EventAdapter).replaceData(it) }
+            swipeRefreshLayout.isRefreshing = false
+            loadingContent.visibility = View.INVISIBLE
+            //empty view message
+            showViewEmptyMessage(eventslist)
         })
 
+    }
+
+    private fun showViewEmptyMessage(eventslist: List<Event>?) {
+        val emptyMessage: TextView = findViewById(R.id.noEvents)
+        if (eventslist?.size == 0) {
+            emptyMessage.visibility = View.VISIBLE
+        } else {
+            emptyMessage.visibility = View.GONE
+        }
+    }
+
+    private fun refreshEvents() {
+        ViewModelProviders.of(this).get(EventViewModel::class.java).getEvents()
+    }
+
+
+    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+        menuInflater.inflate(R.menu.menu_item, menu)
+        return true
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem?): Boolean = when (item?.itemId) {
+        R.id.menu_refresh -> {
+            swipeRefreshLayout.isRefreshing = true
+            refreshEvents()
+            true
+        }
+        else -> {
+            super.onOptionsItemSelected(item)
+        }
     }
 }

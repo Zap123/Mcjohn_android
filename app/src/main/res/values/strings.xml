@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">MCJohn</string>
+    <string name="menu_refresh">Refresh</string>
+    <string name="no_events">Sorry, no events found :(</string>
 </resources>
