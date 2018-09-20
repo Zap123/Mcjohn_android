@@ -1,2 +1,4 @@
 # Mcjohn_android
-Android application for the MCJohn Events project
+Android (Kotlin + MVVM) application for the MCJohn Events project
+
+![Screenshot](Screenshot.png)
