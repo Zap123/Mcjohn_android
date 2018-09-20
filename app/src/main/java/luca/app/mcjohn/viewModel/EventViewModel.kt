@@ -1,31 +1,36 @@
 package luca.app.mcjohn.viewModel
 
-import android.app.Application
-import android.arch.lifecycle.AndroidViewModel
 import android.arch.lifecycle.MutableLiveData
 import android.arch.lifecycle.ViewModel
-import android.widget.Toast
+import kotlinx.coroutines.experimental.Deferred
+import kotlinx.coroutines.experimental.async
 import luca.app.mcjohn.events.Event
+import luca.app.mcjohn.network.EventRequest
+import luca.app.mcjohn.network.Status
 import luca.app.mcjohn.repository.EventRepository
 
-class EventViewModel(application: Application) : AndroidViewModel(application) {
-    private val repo = EventRepository()
-    private val eventsArray : MutableLiveData<List<Event>> = MutableLiveData()
+class EventViewModel(private val repo: EventRepository) : ViewModel() {
+    private val eventsArray: MutableLiveData<EventRequest> = MutableLiveData()
 
-    fun getTestEvents(): Array<Event> {
-        return repo.getTestEvents()
-    }
-
-    fun getEventsArrayObserver():MutableLiveData<List<Event>>{
+    fun getEventsArrayObserver(): MutableLiveData<EventRequest> {
         return eventsArray
     }
 
-    fun getEvents() {
-        repo.getEventsAsync { list: List<Event>, throwable: Throwable? ->
-            eventsArray.value = list
-            if(throwable != null) {
-                Toast.makeText(getApplication(), throwable.toString(), Toast.LENGTH_LONG).show()
+    fun getEvents(){
+        val eventsPromise: Deferred<List<Event>> = repo.getEventsAsync()
+        // set loading
+        //eventsArray.postValue(EventRequest(Status.LOADING, null))
+        async {
+            try {
+                // update live data
+                val events: List<Event> = eventsPromise.await()
+                eventsArray.postValue(EventRequest(Status.SUCCESS, events))
+            } catch (e: Exception) {
+                // empty data and return error
+                e.printStackTrace()
+                eventsArray.postValue(EventRequest(Status.ERROR, listOf()))
             }
+
         }
     }
 }

@@ -1,7 +1,6 @@
 package luca.app.mcjohn
 
 import android.arch.lifecycle.Observer
-import android.arch.lifecycle.ViewModelProviders
 import android.os.Bundle
 import android.support.v4.widget.SwipeRefreshLayout
 import android.support.v7.app.AppCompatActivity
@@ -15,8 +14,8 @@ import android.widget.TextView
 import kotlinx.android.synthetic.main.activity_main.*
 import luca.app.mcjohn.events.Event
 import luca.app.mcjohn.events.EventAdapter
+import luca.app.mcjohn.network.EventRequest
 import luca.app.mcjohn.viewModel.EventViewModel
-import org.koin.android.ext.android.startKoin
 import org.koin.android.viewmodel.ext.android.viewModel
 
 class MainActivity : AppCompatActivity() {
@@ -29,9 +28,8 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-
-        // dependency injection
-        startKoin(this, listOf(appModule))
+        //val binding: ActivityMainBinding = DataBindingUtil.setContentView(this, R.layout.activity_main)
+        //binding.viewmodel = model
 
         // download events
         refreshEvents()
@@ -58,13 +56,15 @@ class MainActivity : AppCompatActivity() {
         val loadingContent: ProgressBar = findViewById(R.id.loadingContent)
 
         // live update
-        model.getEventsArrayObserver().observe(this, Observer<List<Event>> { eventslist ->
+        model.getEventsArrayObserver().observe(this, Observer<EventRequest> { request ->
             // update recycler if data changes
-            eventslist?.let { (viewAdapter as EventAdapter).replaceData(it) }
+            request?.let { (viewAdapter as EventAdapter).replaceData(it.value) }
+
+            //TODO: Move checking to the View
             swipeRefreshLayout.isRefreshing = false
             loadingContent.visibility = View.INVISIBLE
             // empty view message
-            showViewEmptyMessage(eventslist)
+            showViewEmptyMessage(request?.value)
         })
 
     }
