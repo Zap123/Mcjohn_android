@@ -16,19 +16,24 @@ import kotlinx.android.synthetic.main.activity_main.*
 import luca.app.mcjohn.events.Event
 import luca.app.mcjohn.events.EventAdapter
 import luca.app.mcjohn.viewModel.EventViewModel
+import org.koin.android.ext.android.startKoin
+import org.koin.android.viewmodel.ext.android.viewModel
 
 class MainActivity : AppCompatActivity() {
     private lateinit var recyclerView: RecyclerView
     private lateinit var viewAdapter: RecyclerView.Adapter<*>
     private lateinit var viewManager: RecyclerView.LayoutManager
+    // lazy inject ViewModel
+    private val model: EventViewModel by viewModel()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        // instantiate ViewModel
-        val model = ViewModelProviders.of(this).get(EventViewModel::class.java)
-        //download events
+        // dependency injection
+        startKoin(this, listOf(appModule))
+
+        // download events
         refreshEvents()
 
 
@@ -41,24 +46,24 @@ class MainActivity : AppCompatActivity() {
             adapter = viewAdapter
         }
 
-        //pull to refresh
+        // pull to refresh
         val swipeRefreshLayout: SwipeRefreshLayout = findViewById(R.id.swipeRefreshLayout)
 
         swipeRefreshLayout.setOnRefreshListener {
-            //update events
+            // update events
             refreshEvents()
         }
 
-        //Loading bar
+        // Loading bar
         val loadingContent: ProgressBar = findViewById(R.id.loadingContent)
 
         // live update
         model.getEventsArrayObserver().observe(this, Observer<List<Event>> { eventslist ->
-            //update recycler if data changes
+            // update recycler if data changes
             eventslist?.let { (viewAdapter as EventAdapter).replaceData(it) }
             swipeRefreshLayout.isRefreshing = false
             loadingContent.visibility = View.INVISIBLE
-            //empty view message
+            // empty view message
             showViewEmptyMessage(eventslist)
         })
 
@@ -74,7 +79,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun refreshEvents() {
-        ViewModelProviders.of(this).get(EventViewModel::class.java).getEvents()
+        model.getEvents()
     }
 
 
