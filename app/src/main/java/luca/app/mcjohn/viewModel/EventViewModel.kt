@@ -2,9 +2,11 @@ package luca.app.mcjohn.viewModel
 
 import android.arch.lifecycle.MutableLiveData
 import android.arch.lifecycle.ViewModel
+import android.util.Log
 import kotlinx.coroutines.experimental.Deferred
 import kotlinx.coroutines.experimental.async
 import luca.app.mcjohn.events.Event
+import luca.app.mcjohn.network.Day
 import luca.app.mcjohn.network.EventRequest
 import luca.app.mcjohn.network.Status
 import luca.app.mcjohn.repository.EventRepository
@@ -16,21 +18,26 @@ class EventViewModel(private val repo: EventRepository) : ViewModel() {
         return eventsArray
     }
 
-    fun getEvents(){
-        val eventsPromise: Deferred<List<Event>> = repo.getEventsAsync()
+    fun getEvents(day:Day){
+        val eventsPromise: Deferred<List<Event>> = repo.getEventsAsync(day.text)
         // set loading
         //eventsArray.postValue(EventRequest(Status.LOADING, null))
         async {
             try {
                 // update live data
                 val events: List<Event> = eventsPromise.await()
-                eventsArray.postValue(EventRequest(Status.SUCCESS, events))
+                Log.v(TAG, "Events downloaded")
+                eventsArray.postValue(EventRequest(Status.SUCCESS, events, null))
             } catch (e: Exception) {
                 // empty data and return error
                 e.printStackTrace()
-                eventsArray.postValue(EventRequest(Status.ERROR, listOf()))
+                eventsArray.postValue(EventRequest(Status.ERROR, listOf(), e.toString()))
             }
 
         }
+    }
+
+    companion object {
+        private val TAG = "ViewModel"
     }
 }

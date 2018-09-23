@@ -1,87 +1,33 @@
 package luca.app.mcjohn
 
-import android.arch.lifecycle.Observer
 import android.os.Bundle
-import android.support.v4.widget.SwipeRefreshLayout
 import android.support.v7.app.AppCompatActivity
-import android.support.v7.widget.LinearLayoutManager
-import android.support.v7.widget.RecyclerView
 import android.view.Menu
 import android.view.MenuItem
-import android.view.View
-import android.widget.ProgressBar
-import android.widget.TextView
 import kotlinx.android.synthetic.main.activity_main.*
-import luca.app.mcjohn.events.Event
-import luca.app.mcjohn.events.EventAdapter
-import luca.app.mcjohn.network.EventRequest
+import kotlinx.android.synthetic.main.fragment_event.*
+import luca.app.mcjohn.events.EventPageAdapter
+import luca.app.mcjohn.network.Day
 import luca.app.mcjohn.viewModel.EventViewModel
 import org.koin.android.viewmodel.ext.android.viewModel
 
+
 class MainActivity : AppCompatActivity() {
-    private lateinit var recyclerView: RecyclerView
-    private lateinit var viewAdapter: RecyclerView.Adapter<*>
-    private lateinit var viewManager: RecyclerView.LayoutManager
     // lazy inject ViewModel
     private val model: EventViewModel by viewModel()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
         //val binding: ActivityMainBinding = DataBindingUtil.setContentView(this, R.layout.activity_main)
         //binding.viewmodel = model
 
-        // download events
-        refreshEvents()
+        val tabAdapter = EventPageAdapter(supportFragmentManager)
+        pager.adapter = tabAdapter
 
-
-        // set up recyclerView
-        viewManager = LinearLayoutManager(this)
-        viewAdapter = EventAdapter(listOf())
-
-        recyclerView = findViewById<RecyclerView>(R.id.event_recycler_view).apply {
-            layoutManager = viewManager
-            adapter = viewAdapter
-        }
-
-        // pull to refresh
-        val swipeRefreshLayout: SwipeRefreshLayout = findViewById(R.id.swipeRefreshLayout)
-
-        swipeRefreshLayout.setOnRefreshListener {
-            // update events
-            refreshEvents()
-        }
-
-        // Loading bar
-        val loadingContent: ProgressBar = findViewById(R.id.loadingContent)
-
-        // live update
-        model.getEventsArrayObserver().observe(this, Observer<EventRequest> { request ->
-            // update recycler if data changes
-            request?.let { (viewAdapter as EventAdapter).replaceData(it.value) }
-
-            //TODO: Move checking to the View
-            swipeRefreshLayout.isRefreshing = false
-            loadingContent.visibility = View.INVISIBLE
-            // empty view message
-            showViewEmptyMessage(request?.value)
-        })
 
     }
-
-    private fun showViewEmptyMessage(eventslist: List<Event>?) {
-        val emptyMessage: TextView = findViewById(R.id.noEvents)
-        if (eventslist?.size == 0) {
-            emptyMessage.visibility = View.VISIBLE
-        } else {
-            emptyMessage.visibility = View.GONE
-        }
-    }
-
-    private fun refreshEvents() {
-        model.getEvents()
-    }
-
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
         menuInflater.inflate(R.menu.menu_item, menu)
@@ -90,12 +36,17 @@ class MainActivity : AppCompatActivity() {
 
     override fun onOptionsItemSelected(item: MenuItem?): Boolean = when (item?.itemId) {
         R.id.menu_refresh -> {
-            swipeRefreshLayout.isRefreshing = true
-            refreshEvents()
+            refreshTabEvents()
             true
         }
         else -> {
             super.onOptionsItemSelected(item)
         }
+    }
+
+    private fun refreshTabEvents() {
+        swipeRefreshLayout.isRefreshing = true
+        val selectedDay = pager.currentItem.let { pager.adapter?.getPageTitle(it) }
+        model.getEvents(Day.valueOf(selectedDay.toString()))
     }
 }
