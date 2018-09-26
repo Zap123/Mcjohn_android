@@ -7,31 +7,32 @@ import kotlinx.coroutines.experimental.Deferred
 import kotlinx.coroutines.experimental.async
 import luca.app.mcjohn.events.Event
 import luca.app.mcjohn.network.Day
-import luca.app.mcjohn.network.EventRequest
-import luca.app.mcjohn.network.Status
+import luca.app.mcjohn.network.RequestSealed
 import luca.app.mcjohn.repository.EventRepository
 
 class EventViewModel(private val repo: EventRepository) : ViewModel() {
-    private val eventsArray: MutableLiveData<EventRequest> = MutableLiveData()
+    private val eventsArray: MutableLiveData<RequestSealed> = MutableLiveData()
 
-    fun getEventsArrayObserver(): MutableLiveData<EventRequest> {
+    fun getEventsArrayObserver(): MutableLiveData<RequestSealed> {
         return eventsArray
     }
 
-    fun getEvents(day:Day){
+    fun getEvents(day: Day) {
         val eventsPromise: Deferred<List<Event>> = repo.getEventsAsync(day.text)
+
         // set loading
-        //eventsArray.postValue(EventRequest(Status.LOADING, null))
+        eventsArray.postValue(RequestSealed.Loading())
+
         async {
             try {
                 // update live data
                 val events: List<Event> = eventsPromise.await()
                 Log.v(TAG, "Events downloaded")
-                eventsArray.postValue(EventRequest(Status.SUCCESS, events, null))
+                eventsArray.postValue(RequestSealed.Data(events))
             } catch (e: Exception) {
                 // empty data and return error
                 e.printStackTrace()
-                eventsArray.postValue(EventRequest(Status.ERROR, listOf(), e.toString()))
+                eventsArray.postValue(RequestSealed.Error(e.toString()))
             }
 
         }

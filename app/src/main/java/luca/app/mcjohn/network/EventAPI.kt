@@ -23,3 +23,9 @@ enum class Day(val text:String){
     TODAY("Today"),
     TOMORROW("Tomorrow")
 }
+
+sealed class RequestSealed {
+    class Loading(val events : List<Event> = listOf()) : RequestSealed()
+    class Error(val error : String) : RequestSealed()
+    data class Data(val events : List<Event>) : RequestSealed()
+}

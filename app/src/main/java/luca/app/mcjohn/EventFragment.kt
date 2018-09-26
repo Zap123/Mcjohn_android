@@ -1,6 +1,8 @@
 package luca.app.mcjohn
 
 import android.arch.lifecycle.Observer
+import android.databinding.DataBindingUtil
+import android.databinding.ViewDataBinding
 import android.os.Bundle
 import android.support.design.widget.Snackbar
 import android.support.v4.app.Fragment
@@ -12,11 +14,11 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import kotlinx.android.synthetic.main.fragment_event.*
+import luca.app.mcjohn.databinding.FragmentEventBinding
 import luca.app.mcjohn.events.Event
 import luca.app.mcjohn.events.EventAdapter
 import luca.app.mcjohn.network.Day
-import luca.app.mcjohn.network.EventRequest
-import luca.app.mcjohn.network.Status
+import luca.app.mcjohn.network.RequestSealed
 import luca.app.mcjohn.viewModel.EventViewModel
 import org.koin.android.viewmodel.ext.android.viewModel
 
@@ -70,33 +72,48 @@ class EventFragment : Fragment() {
         }
 
         // live update
-        model.getEventsArrayObserver().observe(this, Observer<EventRequest> { request ->
+        model.getEventsArrayObserver().observe(this, Observer<RequestSealed> { request ->
             // update recycler if data changes
-            request?.let { (viewAdapter as EventAdapter).replaceData(it.value) }
+            when (request) {
+                is RequestSealed.Data -> {
+                    (viewAdapter as EventAdapter).replaceData(request.events)
 
-            showErrors(request, swipeRefreshLayout)
+                    // empty view message
+                    showViewEmptyMessage(noEvents, request.events)
 
-            //TODO: Move check to the View
-            swipeRefreshLayout.isRefreshing = false
-            loadingContent.visibility = View.INVISIBLE
-            // empty view message
-            showViewEmptyMessage(noEvents, request?.value)
+                    //TODO: Move check to the View
+                    hideLoading()
+                }
+                is RequestSealed.Error -> {
+                    showErrors(request.error, swipeRefreshLayout)
+
+                    //TODO: Move check to the View
+                    hideLoading()
+                }
+                is RequestSealed.Loading -> {
+                    loadingContent.visibility = View.VISIBLE
+                }
+            }
+
         })
     }
 
-    fun refreshEvents() {
+    private fun hideLoading() {
+        swipeRefreshLayout.isRefreshing = false
+        loadingContent.visibility = View.INVISIBLE
+    }
+
+    private fun refreshEvents() {
         tabDay?.let { model.getEvents(Day.valueOf(it.toUpperCase())) }
     }
 
-    private fun showErrors(request: EventRequest?, swipeRefreshLayout: SwipeRefreshLayout) {
-        if (request?.status == Status.ERROR && request.message != null) {
-            Snackbar.make(swipeRefreshLayout, request.message,
-                    Snackbar.LENGTH_LONG).show()
-        }
+    private fun showErrors(error: String, swipeRefreshLayout: SwipeRefreshLayout) {
+        Snackbar.make(swipeRefreshLayout, error,
+                Snackbar.LENGTH_LONG).show()
     }
 
-    private fun showViewEmptyMessage(emptyMessage: TextView, eventsList: List<Event>?) {
-        if (eventsList?.size == 0) {
+    private fun showViewEmptyMessage(emptyMessage: TextView, eventsList: List<Event>) {
+        if (eventsList.isEmpty()) {
             emptyMessage.visibility = View.VISIBLE
         } else {
             emptyMessage.visibility = View.GONE
@@ -105,9 +122,12 @@ class EventFragment : Fragment() {
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?,
                               savedInstanceState: Bundle?): View? {
-
+        //inflate and bind variable
+        //val listItemBinding :FragmentEventBinding =  DataBindingUtil.inflate(layoutInflater, R.layout.fragment_event, container, false)
+        //listItemBinding.viewModel= model
         // Inflate the layout for this fragment
         return inflater.inflate(R.layout.fragment_event, container, false)
+
     }
 
     companion object {

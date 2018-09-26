@@ -20,9 +20,6 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        //val binding: ActivityMainBinding = DataBindingUtil.setContentView(this, R.layout.activity_main)
-        //binding.viewmodel = model
-
         val tabAdapter = EventPageAdapter(supportFragmentManager)
         pager.adapter = tabAdapter
 
